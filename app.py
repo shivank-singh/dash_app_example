@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[25]:
 
 
 import pandas as pd
@@ -29,12 +29,13 @@ df.drop('Flag and Footnotes',axis=1,inplace=True)
 df.head()
 
 
-# In[2]:
+# In[26]:
 
 
 available_indicators = df['NA_ITEM'].unique()
 countries = df['GEO'].unique()
 timeline = df['TIME'].unique()
+units = df['UNIT'].unique()
 
 app.layout = html.Div([
     html.Div([
@@ -61,8 +62,9 @@ app.layout = html.Div([
         value=df['TIME'].max(),
         step=None,
         marks={str(year): str(year) for year in df['TIME'].unique()}
+#           style={'width': '90%','margin-bottom' : 40}
         ),
-
+    html.Div(style={'margin-bottom': 40}),
  html.Div([
         html.Div([
             dcc.Dropdown(
@@ -75,6 +77,14 @@ app.layout = html.Div([
                 id='yaxis-column2',
                 options=[{'label': i, 'value': i} for i in countries],
                 value='Belgium')],
+            style={'width': '48%', 'float':'right', 'display': 'inline-block'}),
+     html.Div([
+            dcc.RadioItems(
+                id='unit',
+                options=[{'label': i, 'value': i} for i in units],
+                value='Current prices, million euro',
+                labelStyle={'display': 'inline-block'}
+            )],
             style={'width': '48%', 'float':'right', 'display': 'inline-block'})
     ]),
 
@@ -97,8 +107,9 @@ def update_graph(xaxis_column_name, yaxis_column_name,
             text=dff[dff['NA_ITEM'] == yaxis_column_name]['GEO'],
             mode='markers',
             marker={
-                'size': 15,
+                'size': 35,
                 'opacity': 0.5,
+                 'colorscale':'Viridis',
                 'line': {'width': 0.5, 'color': 'white'}
             }
         )],
@@ -114,13 +125,15 @@ def update_graph(xaxis_column_name, yaxis_column_name,
 @app.callback(
     dash.dependencies.Output('country-indicator-graphic', 'figure'),
     [dash.dependencies.Input('xaxis-column2', 'value'),
-     dash.dependencies.Input('yaxis-column2', 'value')])
-def update_graph(xaxis_column_name, yaxis_column_name):
+     dash.dependencies.Input('yaxis-column2', 'value'), 
+     dash.dependencies.Input('unit', 'value')])
+def update_graph(xaxis_column_name, yaxis_column_name, unit):
+        dff = df[(df['GEO'] == yaxis_column_name) & (df['UNIT'] == unit)]
         return {
         'data': [go.Scatter(
-            x=df[df['NA_ITEM'] == xaxis_column_name]['TIME'],
-            y=df[df['NA_ITEM'] == yaxis_column_name]['Value'],
-            text=df[df['NA_ITEM'] == yaxis_column_name]['GEO'],
+            x=dff[dff['NA_ITEM'] == xaxis_column_name]['TIME'],
+            y=dff[dff['NA_ITEM'] == xaxis_column_name]['Value'],
+            text=dff[dff['NA_ITEM'] == yaxis_column_name]['GEO'],
             mode='lines',
             marker={
                 'size': 15,
