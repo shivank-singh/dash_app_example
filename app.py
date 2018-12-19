@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[25]:
+# In[46]:
 
 
 import pandas as pd
@@ -22,14 +22,12 @@ dfnew = ~df.isin(['European Union (current composition)',
               'Euro area (EA11-2000, EA12-2006, EA13-2007, EA15-2008, EA16-2010, EA17-2013, EA18-2014, EA19)',
               'Euro area (19 countries)',
               'Euro area (12 countries)'])
-# df = df.rename(index={'Germany (until 1990 former territory of the FRG)': 'Germany'})
 df = df[dfnew]
 df.dropna(how='any',subset=["GEO"],axis=0,inplace=True)
 df.drop('Flag and Footnotes',axis=1,inplace=True)
-df.head()
 
 
-# In[26]:
+# In[47]:
 
 
 available_indicators = df['NA_ITEM'].unique()
@@ -39,13 +37,17 @@ units = df['UNIT'].unique()
 
 app.layout = html.Div([
     html.Div([
-
+        html.H2(children='Economic Indicators Report',
+                style={
+            'textAlign': 'center',
+            'margin': 30}
+        ),
         html.Div([
             dcc.Dropdown(
                 id='xaxis-column',
                 options=[{'label': i, 'value': i} for i in available_indicators],
                 value='Gross domestic product at market prices'
-            )],style={'width': '48%', 'display': 'inline-block'}),
+            )],style={'width': '40%', 'display': 'inline-block','margin': 20}),
         html.Div([
             dcc.Dropdown(
                 id='yaxis-column',
@@ -53,7 +55,15 @@ app.layout = html.Div([
                 value='Final consumption expenditure'
             )
         ],
-        style={'width': '48%','float':'right','display': 'inline-block'})]),    
+        style={'width': '40%','float':'right','display': 'inline-block','margin': 20}),
+      html.Div([
+            dcc.RadioItems(
+                id='unit',
+                options=[{'label': i, 'value': i} for i in units],
+                value='Current prices, million euro',
+                labelStyle={'display': 'inline-block', 'margin':10}
+            )],
+            style={'width': '100%', 'display': 'inline-block','margin': 30})]),    
         dcc.Graph(id='indicator-graphic'),
      dcc.Slider(
         id='year--slider',
@@ -62,30 +72,30 @@ app.layout = html.Div([
         value=df['TIME'].max(),
         step=None,
         marks={str(year): str(year) for year in df['TIME'].unique()}
-#           style={'width': '90%','margin-bottom' : 40}
         ),
-    html.Div(style={'margin-bottom': 40}),
+    html.Div(style={'margin-bottom': 60}),
  html.Div([
+             html.H2(children=''),
         html.Div([
             dcc.Dropdown(
                 id='xaxis-column2',
                 options=[{'label': i, 'value': i} for i in available_indicators],
                 value='Gross domestic product at market prices'
-            )],style={'width': '48%', 'display': 'inline-block'}),
+            )],style={'width': '40%', 'display': 'inline-block','margin': 20}),
         html.Div([
             dcc.Dropdown(
                 id='yaxis-column2',
                 options=[{'label': i, 'value': i} for i in countries],
                 value='Belgium')],
-            style={'width': '48%', 'float':'right', 'display': 'inline-block'}),
+            style={'width': '40%', 'float':'right', 'display': 'inline-block','margin': 20}),
      html.Div([
             dcc.RadioItems(
                 id='unit',
                 options=[{'label': i, 'value': i} for i in units],
                 value='Current prices, million euro',
-                labelStyle={'display': 'inline-block'}
+                labelStyle={'display': 'inline-block','margin':10}
             )],
-            style={'width': '48%', 'float':'right', 'display': 'inline-block'})
+            style={'width': '88%', 'display': 'inline-block','margin': 30})
     ]),
 
     dcc.Graph(id='country-indicator-graphic')
@@ -95,19 +105,24 @@ app.layout = html.Div([
     dash.dependencies.Output('indicator-graphic', 'figure'),
     [dash.dependencies.Input('xaxis-column', 'value'),
      dash.dependencies.Input('yaxis-column', 'value'),
+     dash.dependencies.Input('unit', 'value'),
      dash.dependencies.Input('year--slider', 'value')])
-def update_graph(xaxis_column_name, yaxis_column_name,
+def update_graph(xaxis_column_name, yaxis_column_name, unit,
                  year_value):
-    dff = df[df['TIME'] == year_value]
-    
+    dff = df[(df['TIME'] == year_value) & (df['UNIT'] == unit)]
+
     return {
         'data': [go.Scatter(
             x=dff[dff['NA_ITEM'] == xaxis_column_name]['Value'],
             y=dff[dff['NA_ITEM'] == yaxis_column_name]['Value'],
             text=dff[dff['NA_ITEM'] == yaxis_column_name]['GEO'],
+            customdata=dff[dff['NA_ITEM'] == yaxis_column_name]['GEO'],
+
             mode='markers',
+            line=dict(
+                color= ('rgb(170,24,175)')),
             marker={
-                'size': 35,
+                'size': 15,
                 'opacity': 0.5,
                  'colorscale':'Viridis',
                 'line': {'width': 0.5, 'color': 'white'}
@@ -117,7 +132,8 @@ def update_graph(xaxis_column_name, yaxis_column_name,
             
             xaxis={'title': xaxis_column_name},
             yaxis={'title': yaxis_column_name},
-            margin={'l': 40, 'b': 40, 't': 20, 'r': 50},
+            title= 'All European Countries',
+            margin={'l': 60, 'b': 60, 't': 50, 'r': 60},
             hovermode='closest'
         )
     }
@@ -135,6 +151,8 @@ def update_graph(xaxis_column_name, yaxis_column_name, unit):
             y=dff[dff['NA_ITEM'] == xaxis_column_name]['Value'],
             text=dff[dff['NA_ITEM'] == yaxis_column_name]['GEO'],
             mode='lines',
+            line=dict(
+                color= ('rgb(170,24,175)')),
             marker={
                 'size': 15,
                 'opacity': 0.5,
@@ -145,8 +163,8 @@ def update_graph(xaxis_column_name, yaxis_column_name, unit):
             
             xaxis={'title': xaxis_column_name},
             yaxis={'title': yaxis_column_name},
-            margin={'l': 40, 'b': 40, 't': 20, 'r': 50},
-#             style={'float':'right'},
+            margin={'l': 60, 'b': 60, 't': 60, 'r': 60},
+            title= 'By Country',
             hovermode='closest'
         )
     }
